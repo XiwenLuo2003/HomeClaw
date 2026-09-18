@@ -1,0 +1,25 @@
+# HomeClaw 依赖清单
+# ---------------------------------------------------------------------------
+# 核心链路（五维评测 / 单主循环 / 内存仿真 / 场景导出）为纯标准库实现，无需第三方依赖，
+# 因此离线 CI 与冒烟测试（tests/smoke_*.py）开箱即跑。
+# 以下依赖按用途分组，按需安装；缺失时相应能力自动降级并在日志中如实标注。
+# ---------------------------------------------------------------------------
+
+# --- 云端 LLM API（run_experiment.py --provider openai / anthropic）---
+openai>=1.0.0
+anthropic>=0.25.0
+
+# --- 本地开源 LLM（--provider local；download_models.py --llm）---
+transformers>=4.40.0
+torch>=2.0.0
+huggingface_hub>=0.23.0
+accelerate>=0.30.0
+
+# --- SAGE 多模态设备消歧：真实 CLIP 视觉模型（device_resolution 维度）---
+# 缺失时 DeviceDisambiguationTool 回退文本兜底（backend=="text"），须在方法学中标注。
+open_clip_torch>=2.24.0
+pillow>=10.0.0
+
+# --- SAGE 记忆库真实向量检索：句向量模型（personalization 维度）---
+# 缺失时 MemoryBank 回退关键词检索（retriever_kind=="keyword"），须在方法学中标注。
+sentence-transformers>=2.7.0
