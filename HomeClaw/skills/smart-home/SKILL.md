@@ -12,8 +12,8 @@ command-dispatch: model
 
 ---
 
-<!-- CORE:BEGIN -->
-## 0. 核心速览（Cheat-Sheet · 始终加载）
+<!-- OVERVIEW:BEGIN -->
+## 0. 规则速览（Cheat-Sheet · 始终加载）
 
 > 本段是最短可用规则；对格式清晰、单一设备的简单指令，仅凭本段即可作答。
 
@@ -23,7 +23,7 @@ command-dispatch: model
 - 房间/设备/属性/方法**不存在**，或参数无合法执行方式 → 该位置输出 `error_input`。
 - 只输出机器指令，不要输出思考过程或解释。
 - 需要个性化、多设备消歧、多步规划、条件持久化等复杂策略时，请加载完整技能正文（READ_SKILL: smart-home）。
-<!-- CORE:END -->
+<!-- OVERVIEW:END -->
 
 ---
 

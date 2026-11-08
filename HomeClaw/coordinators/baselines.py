@@ -51,7 +51,7 @@ class OnePromptCoordinator(HomeClawCoordinator):
             "multiple actions. Use only devices/methods provided in <home_state> and "
             "<device_method>. Output 'error_input' for non-existent device/attribute/method."
         )
-        self.skill_core = self.skill_body
+        self.skill_overview = self.skill_body
 
 
 class SashaCoordinator(HomeClawCoordinator):

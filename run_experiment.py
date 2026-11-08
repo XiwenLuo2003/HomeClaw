@@ -102,7 +102,7 @@ def measure_lazy_saving(llm_config: LLMConfig) -> str:
     saved = (1 - on_tok / off_tok) * 100 if off_tok else 0.0
     lines = [
         "== 懒加载省 token（同一 HomeClaw 内核，简单指令，prompt_tokens）==",
-        f"  lazy_load=on  (仅注入 CORE 速览): {on_tok}  (skill_loaded={r_on.skill_loaded})",
+        f"  lazy_load=on  (仅注入规则速览): {on_tok}  (skill_loaded={r_on.skill_loaded})",
         f"  lazy_load=off (注入 SKILL 全文): {off_tok}",
         f"  节省: {saved:.1f}%（简单指令无需完整领域策略，故省去全文）",
     ]

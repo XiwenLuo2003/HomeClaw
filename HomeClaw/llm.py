@@ -66,7 +66,7 @@ class MockLLMClient(BaseLLMClient):
         user = "\n".join(m["content"] for m in messages if m["role"] == "user")
         tool_msgs = [m["content"] for m in messages if m["role"] == "tool"]
 
-        # 懒加载：若 system 仅有 skill 索引（未含全文 CORE 外的策略），
+        # 懒加载：若 system 仅有 skill 索引（未含速览之外的完整策略），
         # 且指令为多子句复杂指令、且尚未加载过技能，则先请求加载全文。
         already_loaded = any("<skill" in t for t in tool_msgs)
         if "<skill_index>" in system and not already_loaded and self._is_complex(user):

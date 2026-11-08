@@ -46,7 +46,7 @@ graph TB
 
 ```
 用户指令 → HomeClawCoordinator.execute()
-   → loop.py 单主循环：注入 CORE Skill 速览 → LLM
+   → loop.py 单主循环：注入 Skill 规则速览 → LLM
    → （复杂指令）READ_SKILL 拉全文 → LLM 再生成
    → 产出动作文本 room.device.operation(param)
    → parser 解析 → Executor 落地（仿真改内存 / 真机调云 API）
@@ -61,7 +61,7 @@ graph TB
 HomeClaw/
 ├── homeclaw/              # 核心包
 │   ├── loop.py      # OpenClaw 式单主循环内核（LLM→工具→回灌→再循环）
-│   ├── prompt.py        # 两级懒加载 system prompt 构建（CORE 速览 + 按需全文）
+│   ├── prompt.py        # 两级懒加载 system prompt 构建（规则速览 + 按需全文）
 │   ├── llm.py # Provider 无关 LLM 层：mock/openai/anthropic/local(HF)
 │   ├── config.py        # LLMConfig / SkillConfig / CoordinatorType / build_coordinator
 │   ├── data_paths.py            # 数据/模型路径统一配置（数据自包含，零跨项目引用）
@@ -71,7 +71,7 @@ HomeClaw/
 │   │   ├── baselines.py   # OnePrompt / Sasha / SageBridge 三对照组
 │   │   └── base.py           # Coordinator 抽象 + ExecuteResult
 │   │
-│   ├── skills/smart-home/       # smart-home Skill（SKILL.md，含 CORE 速览段）
+│   ├── skills/smart-home/       # smart-home Skill（SKILL.md，含规则速览段）
 │   │
 │   ├── executor/              # 执行层（动作文本 → 状态变更 / 真机调用）
 │   │   ├── parser.py    # 解析 room.device.operation(param) / error_input
@@ -119,7 +119,7 @@ HomeClaw/
 
 ### 关键设计
 - **编排内核**：OpenClaw 式单主循环 + 原生 Function-Calling，摆脱 LangChain ReAct 文本解析。
-- **能力组织**：扁平 Skill 两级懒加载（CORE 速览始终注入 + 完整策略按需 `READ_SKILL`），简单指令省 token。
+- **能力组织**：扁平 Skill 两级懒加载（规则速览始终注入 + 完整策略按需 `READ_SKILL`），简单指令省 token。
 - **动作格式**：统一 `room.device.operation(param)` / `error_input`，仿真与真机零改格式。
 - **多模态设备消歧**：`DeviceDisambiguationTool` 默认走**真实 CLIP 图文相似度**，结合 `data/sage/images/` 的实景照片 + 空间锚点（by the credenza / plant …）在同类多设备间消歧；缺 `open_clip`/`torch` 时回退文本兜底并如实标注后端（`backend=="text"`）。
 - **向量记忆检索**：`MemoryBank` 默认 auto 策略，装了 `sentence-transformers` 即自动启用**真实向量语义检索**（与 SAGE 原始向量库对齐），否则回退关键词并标注（`retriever_kind=="keyword"`）。

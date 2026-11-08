@@ -20,9 +20,9 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 
-# SKILL 正文中"始终注入"的核心段落标记（介于二者之间的内容属于懒加载可省略的完整策略）
-_CORE_BEGIN = "<!-- CORE:BEGIN -->"
-_CORE_END = "<!-- CORE:END -->"
+# SKILL 正文中“始终注入”的规则速览标记（介于二者之间的内容属于懒加载可省略的完整策略）
+_OVERVIEW_BEGIN = "<!-- OVERVIEW:BEGIN -->"
+_OVERVIEW_END = "<!-- OVERVIEW:END -->"
 
 
 def _default_skill_path(skill_name: str) -> str:
@@ -41,15 +41,19 @@ def load_skill_body(skill_path: Optional[str], skill_name: str = "smart-home") -
     return m.group(1).strip() if m else content.strip()
 
 
-def load_skill_core(skill_path: Optional[str], skill_name: str = "smart-home") -> str:
-    """【M6】提取 SKILL 正文中 CORE:BEGIN/END 之间的"核心速览"段。
+def load_skill_overview(skill_path: Optional[str], skill_name: str = "smart-home") -> str:
+    """【M6】提取 SKILL 正文中 OVERVIEW:BEGIN/END 之间的“规则速览”段。
 
     该段落是懒加载模式下唯一始终注入 system prompt 的部分，
     包含最短的动作格式与 error_input 规则；完整领域策略需 read_skill 拉取。
-    若正文未标注 CORE 段，则回退为整篇正文（等价于不省 token）。
+    若正文未标注 OVERVIEW 段，则回退为整篇正文（等价于不省 token）。
     """
     body = load_skill_body(skill_path, skill_name)
-    m = re.search(re.escape(_CORE_BEGIN) + r"(.*?)" + re.escape(_CORE_END), body, flags=re.S)
+    m = re.search(
+        re.escape(_OVERVIEW_BEGIN) + r"(.*?)" + re.escape(_OVERVIEW_END),
+        body,
+        flags=re.S,
+    )
     return m.group(1).strip() if m else body
 
 
@@ -144,7 +148,7 @@ def build_system_prompt(
 # 懒加载模式下 read_skill 工具的使用说明（注入 system prompt 顶部）
 _LAZY_SKILL_HINT = (
     "<skill_index>\n"
-    "You have access to a domain skill via a tool. Below is only its CORE cheat-sheet.\n"
+    "You have access to a domain skill via a tool. Below is only its overview cheat-sheet.\n"
     "If the user instruction is a simple, unambiguous device command that the cheat-sheet\n"
     "already covers, answer directly WITHOUT loading the full skill.\n"
     "If you need the FULL domain strategy (personalization / device disambiguation /\n"
@@ -156,16 +160,16 @@ _LAZY_SKILL_HINT = (
 
 
 def build_lazy_system_prompt(
-    skill_core: str,
+    skill_overview: str,
     home_status: Optional[Dict] = None,
     methods: Optional[List[Dict]] = None,
 ) -> str:
     """【M6】两级懒加载模式的初始 system prompt。
 
-    只注入：read_skill 提示 + SKILL 核心速览段 + home_state + device_method。
+    只注入：read_skill 提示 + SKILL 规则速览段 + home_state + device_method。
     完整领域策略正文不在此注入，模型需要时通过 READ_SKILL 工具拉取。
     """
-    head = _LAZY_SKILL_HINT + "\n\n" + skill_core
+    head = _LAZY_SKILL_HINT + "\n\n" + skill_overview
     return _assemble(head, home_status, methods)
 
 

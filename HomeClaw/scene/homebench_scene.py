@@ -38,7 +38,7 @@ ROOM_DEVICES: Dict[str, List[str]] = {
 }
 
 # 每间房必有的核心设备（其余为可选/干扰）
-CORE_DEVICES: Dict[str, List[str]] = {
+BASE_DEVICES: Dict[str, List[str]] = {
     "master_bedroom": ["light", "air_conditioner"],
     "guest_bedroom": ["light", "heating"],
     "living_room": ["light", "air_conditioner", "tv"],
@@ -74,7 +74,7 @@ def _device_pos(slot_index: int):
 def build_homebench_scene(seed: Optional[int] = 42, randomize: bool = False) -> Scene:
     """构建 HomeBench 12 房间场景。
 
-    randomize=False（默认）：确定性——每间放 CORE 设备 + 其余候选设备（exists=True），
+    randomize=False（默认）：确定性——每间放基础设备 + 其余候选设备（exists=True），
         并为每个可选设备补一个 exists=False 的干扰项（对齐 HomeBench unexist_device）。
     randomize=True：按 seed 随机决定可选设备是否存在（更接近原 visualHome 行为）。
     """
@@ -82,12 +82,12 @@ def build_homebench_scene(seed: Optional[int] = 42, randomize: bool = False) -> 
     scene = Scene(name="HomeBench-Home", source="homebench")
     for r_idx, room_name in enumerate(ALL_ROOMS):
         room = Room(name=room_name, pos=_room_pos(r_idx), size=(_ROOM_W, _ROOM_D, _ROOM_H))
-        core = set(CORE_DEVICES.get(room_name, ["light"]))
+        base = set(BASE_DEVICES.get(room_name, ["light"]))
         candidates = ROOM_DEVICES.get(room_name, ["light"])
         slot_i = 0
         for dev in candidates:
-            is_core = dev in core
-            if is_core:
+            is_base = dev in base
+            if is_base:
                 exists = True
             elif randomize:
                 exists = rng.random() > 0.5
@@ -95,8 +95,8 @@ def build_homebench_scene(seed: Optional[int] = 42, randomize: bool = False) -> 
                 exists = True
             room.add(DeviceSlot(device_type=dev, exists=exists, pos=_device_pos(slot_i)))
             slot_i += 1
-            # 非核心设备补一个干扰(unexist)副本（确定性模式下用于幻觉测试）
-            if not is_core and not randomize:
+            # 非基础设备补一个干扰(unexist)副本（确定性模式下用于幻觉测试）
+            if not is_base and not randomize:
                 room.add(DeviceSlot(device_type=dev, name=f"{dev}_ghost", exists=False, pos=_device_pos(slot_i)))
                 slot_i += 1
         scene.add_room(room)

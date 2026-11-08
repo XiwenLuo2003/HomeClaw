@@ -21,7 +21,7 @@ from homeclaw.prompt import (
     build_lazy_system_prompt,
     build_user_prompt,
     load_skill_body,
-    load_skill_core,
+    load_skill_overview,
     split_user_command,
 )
 
@@ -51,11 +51,11 @@ class HomeClawCoordinator(BaseCoordinator):
         super().__init__(config)
         self.config: HomeClawCoordinatorConfig = config
 
-        # 加载 Skill 正文（全文）与核心速览段（懒加载时始终注入的最短规则）
+        # 加载 Skill 正文（全文）与规则速览段（懒加载时始终注入的最短规则）
         self.skill_body = load_skill_body(
             config.skill_config.skill_path, config.skill_config.skill_name
         )
-        self.skill_core = load_skill_core(
+        self.skill_overview = load_skill_overview(
             config.skill_config.skill_path, config.skill_config.skill_name
         )
         # 是否启用两级懒加载（对齐 OpenClaw 省 token 卖点）
@@ -139,9 +139,9 @@ class HomeClawCoordinator(BaseCoordinator):
         home_status: Optional[Dict],
         methods: Optional[List[Dict]],
     ) -> LoopResult:
-        # 懒加载：只注入核心速览 + read_skill 提示；否则注入全文
+        # 懒加载：只注入规则速览 + read_skill 提示；否则注入全文
         if self.lazy_load:
-            system_prompt = build_lazy_system_prompt(self.skill_core, home_status, methods)
+            system_prompt = build_lazy_system_prompt(self.skill_overview, home_status, methods)
         else:
             system_prompt = build_system_prompt(self.skill_body, home_status, methods)
         user_prompt = build_user_prompt(instruction)

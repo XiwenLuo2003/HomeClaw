@@ -35,7 +35,7 @@ class SkillConfig:
     # smart-home Skill 的 SKILL.md 相对/绝对路径；None 时用包内默认路径
     skill_path: Optional[str] = None
     skill_name: str = "smart-home"
-    # 是否采用"两级懒加载"：system prompt 只注入 SKILL 核心速览 + read_skill 提示，
+    # 是否采用"两级懒加载"：system prompt 只注入 SKILL 规则速览 + read_skill 提示，
     # 模型判断需要完整领域策略时才通过 READ_SKILL 拉取全文并回传。
     # 【M6】默认 True，真正对齐 OpenClaw "Skill 懒加载省 token" 的卖点；
     # 对照组基线（Sasha/OnePrompt）会显式关闭以体现差异。
