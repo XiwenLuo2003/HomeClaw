@@ -12,28 +12,28 @@
 ## 一、一图速览
 
 ```mermaid
-graph TB
+flowchart TB
     subgraph SRC["三大源项目（资产来源）"]
-        SAGE["SAGE<br/>五维评测基准 + 领域知识<br/>(LangChain 旧范式)"]
-        HB["HomeBench<br/>大规模数据集 + 幻觉六型<br/>+ 可执行设备仿真"]
-        OC["OpenClaw<br/>单主循环 + Skill 懒加载<br/>(2025 现代范式)"]
+        SAGE["SAGE<br/>五维评测基准与领域知识<br/>LangChain 旧范式"]
+        HB["HomeBench<br/>大规模数据集与幻觉六型<br/>可执行设备仿真"]
+        OC["OpenClaw<br/>单主循环与 Skill 懒加载<br/>现代 Agent 范式"]
     end
 
     subgraph HC["HomeClaw（本项目）"]
-        SK["smart-home Skill<br/>SAGE 提示词 + HomeBench 格式约定<br/>两级懒加载"]
-        RT["HomeClawCoordinator<br/>单主循环 + Function-Calling<br/>暴露 SAGE 兼容 execute()"]
-        EV["双评测适配器<br/>Sage(五维) + HomeBench(幻觉六型)"]
- EX["ActionExecutor<br/>Simulate(默认) / RealDevice(预留)"]
-        SC["scene 场景层<br/>HomeBench 12 房间 / SAGE 全量设备<br/>+ 3D JSON 导出"]
-        TL["SAGE 工具<br/>MemoryBank / UserProfile / Weather…"]
+        SK["smart-home Skill<br/>SAGE 提示词与 HomeBench 格式约定<br/>两级懒加载"]
+        RT["HomeClawCoordinator<br/>单主循环与 Function Calling<br/>SAGE 兼容执行接口"]
+        EV["双评测适配器<br/>SAGE 五维评测与 HomeBench 幻觉六型"]
+        EX["ActionExecutor<br/>默认仿真与真机接口预留"]
+        SC["Scene 场景层<br/>HomeBench 12 房间与 SAGE 全量设备<br/>3D JSON 导出"]
+        TL["SAGE 工具<br/>MemoryBank、UserProfile、Weather"]
     end
 
-    SAGE -->|领域知识/五维标签| SK
-    SAGE -->|execute()接口/对照组| RT
- SAGE -->|记忆/画像| TL
- HB -->|系统提示/动作格式| SK
-    HB -->|幻觉数据/device.py| EX
-    OC -->|Runtime 范式| RT
+    SAGE -->|"领域知识与五维标签"| SK
+    SAGE -->|"执行接口与对照组"| RT
+    SAGE -->|"记忆与用户画像"| TL
+    HB -->|"系统提示与动作格式"| SK
+    HB -->|"幻觉数据与设备模型"| EX
+    OC -->|"运行时范式"| RT
 
     SK --> RT
     RT --> EX
