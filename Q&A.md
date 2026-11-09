@@ -81,3 +81,6 @@ GRPO多模态Grounder、结合Skill-MoE稀疏编排、Proposer–Verifier对抗�
 3. 项目中提到复杂任务成功率提升25%、Grounding准确率达到84%，具体基线、测试集与统计口径是什么？
 4. 如何通过消融实验区分GRPO训练、Skill-MoE路由以及Proposer–Verifier分别带来的提升？
 5. 如果让你重新设计这个项目，你会保留哪些机制、删除哪些过度设计？实际遇到的最大工程难点是什么？
+
+## 23条建议Q&A
+
