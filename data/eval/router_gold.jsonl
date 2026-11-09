@@ -1,0 +1,25 @@
+{"text":"turn on the bedroom light","expected_skills":["lighting"]}
+{"text":"dim the living room lamp to forty percent","expected_skills":["lighting"]}
+{"text":"关闭厨房的灯","expected_skills":["lighting"]}
+{"text":"把卧室亮度调低","expected_skills":["lighting"]}
+{"text":"set the air conditioner to 24 degrees","expected_skills":["climate"]}
+{"text":"switch the HVAC to cooling mode","expected_skills":["climate"]}
+{"text":"把空调温度调到二十六度","expected_skills":["climate"]}
+{"text":"房间太热了请降温","expected_skills":["climate"]}
+{"text":"play music on the living room speaker","expected_skills":["media"]}
+{"text":"turn down the television volume","expected_skills":["media"]}
+{"text":"暂停电视播放","expected_skills":["media"]}
+{"text":"lock the front door","expected_skills":["security"]}
+{"text":"unlock the entrance lock","expected_skills":["security"]}
+{"text":"把门锁上","expected_skills":["security"]}
+{"text":"start the dishwasher","expected_skills":["appliance"]}
+{"text":"set the refrigerator to vacation mode","expected_skills":["appliance"]}
+{"text":"启动洗碗机","expected_skills":["appliance"]}
+{"text":"turn on that lamp in the image","expected_skills":["device-disambiguation","lighting"]}
+{"text":"which one of these devices is the television","expected_skills":["device-disambiguation","media"]}
+{"text":"打开图里那盏灯","expected_skills":["device-disambiguation","lighting"]}
+{"text":"dim the lamp and set the air conditioner temperature","expected_skills":["lighting","climate"]}
+{"text":"lock the door then turn off the lights","expected_skills":["security","lighting"]}
+{"text":"play music and start the dishwasher","expected_skills":["media","appliance"]}
+{"text":"打开空调同时关闭客厅灯","expected_skills":["climate","lighting"]}
+{"text":"do the thing over there","expected_skills":["clarification"]}

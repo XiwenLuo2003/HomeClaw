@@ -7,6 +7,18 @@
 - 详细设计见 [`00-设计草案.md`](./00-设计草案.md) 及 `01~06` 系列设计文档。
 - 本文只讲三件事：**整体代码架构 · 一图速览 · 一键实验步骤**。
 
+> `production-ready` 分支已增加可恢复 Workflow、Skill Top-K/Tool 二次收缩、确定性 Verifier、MCP–MQTT 状态证据闭环、时间化用户偏好、PostgreSQL/Redis/MongoDB/RabbitMQ Adapter、Qwen3-VL Grounder 推理服务、OpenTelemetry 与受控自进化门禁。实施状态见 [`production-ready-plan.md`](./production-ready-plan.md)，架构见 [`docs/production-ready-architecture.md`](./docs/production-ready-architecture.md)。
+
+无需安装额外依赖的本地验收：
+
+```powershell
+python scripts/verify.py --suite all
+python scripts/evaluate_router.py --output reports/router-eval.json
+python scripts/external_preflight.py --output reports/external-preflight.json
+```
+
+最后一条只做只读预检，不连接或启动任何外部服务。真实环境验收清单见 [`docs/external-acceptance.md`](./docs/external-acceptance.md)。
+
 ---
 
 ## 一、一图速览
@@ -163,6 +175,10 @@ python3 tests/smoke_p1_p6.py    # 六阶段回归（数据/场景/工具/本地�
 ```bash
 export OPENAI_API_KEY=sk-...
 python3 run_experiment.py --provider openai --model gpt-4o-mini --limit 200
+
+# 或 Gemini（在线 Agent 主模型；与 Qwen3-VL Grounder 相互独立）
+export GEMINI_API_KEY=...
+python3 run_experiment.py --provider gemini --model <gemini-model> --limit 200
 
 # 或 Anthropic
 export ANTHROPIC_API_KEY=...

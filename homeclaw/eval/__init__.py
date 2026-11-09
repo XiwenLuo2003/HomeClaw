@@ -20,6 +20,12 @@ from homeclaw.eval.sage_adapter import (
     get_tests,
     TEST_REGISTER,
 )
+from homeclaw.eval.baseline_router import TfidfVectorRouter
+from homeclaw.eval.state_consistency import (
+    StateConsistencyObservation,
+    StateConsistencySummary,
+    summarize_state_consistency,
+)
 # 触发五维用例注册（M6：从 SAGE 官方 testcases 迁移的多用例集）
 from homeclaw.eval import sage_cases as _sage_cases  # noqa: F401
 
@@ -29,4 +35,6 @@ __all__ = [
     "classify_type", "SIX_TYPES",
     "SageEvalAdapter", "DimensionResult", "TestCaseResult",
     "register", "get_tests", "TEST_REGISTER",
+    "TfidfVectorRouter",
+    "StateConsistencyObservation", "StateConsistencySummary", "summarize_state_consistency",
 ]

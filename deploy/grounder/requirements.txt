@@ -1,0 +1,6 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+transformers>=4.57,<5
+accelerate>=1.2,<2
+pillow>=11,<13
+qwen-vl-utils>=0.0.14,<1

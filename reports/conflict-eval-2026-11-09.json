@@ -1,0 +1,25 @@
+{
+  "provenance": {
+    "kind": "homeclaw_synthetic_conflict_rule_evaluation",
+    "dataset": "data\\eval\\conflict_gold.jsonl",
+    "sha256": "6f67fb5baa975f124e66ef0b8db44fc7b195fe4d47d8f05d2800fb96ef4ebd9a",
+    "warning": "Repository-owned synthetic rule coverage; not a KnowDetector paper result."
+  },
+  "case_ids": [
+    "safe_independent",
+    "redundant",
+    "device_conflict",
+    "environment_conflict",
+    "resource_conflict",
+    "ordered_resource",
+    "dependency_cycle",
+    "blocked_action"
+  ],
+  "metrics": {
+    "sample_count": 8,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "exact_match": 1.0
+  }
+}

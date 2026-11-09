@@ -1,0 +1,55 @@
+{
+  "generated_at": "2026-11-09T06:39:56.578855+00:00",
+  "mode": "read-only; no network, process start, or installation",
+  "python_modules": {
+    "mcp": {
+      "purpose": "MCP SDK integration",
+      "available": false
+    },
+    "paho.mqtt.client": {
+      "purpose": "MQTT transport",
+      "available": false
+    },
+    "redis": {
+      "purpose": "Redis cache/idempotency",
+      "available": false
+    },
+    "psycopg": {
+      "purpose": "PostgreSQL checkpoint store",
+      "available": false
+    },
+    "pymongo": {
+      "purpose": "MongoDB temporal memory",
+      "available": false
+    },
+    "aio_pika": {
+      "purpose": "RabbitMQ event bus",
+      "available": false
+    },
+    "opentelemetry.sdk": {
+      "purpose": "OpenTelemetry export",
+      "available": false
+    }
+  },
+  "executables": {
+    "docker": false
+  },
+  "configuration": {
+    "HOMECLAW_POSTGRES_DSN": false,
+    "HOMECLAW_REDIS_URL": false,
+    "HOMECLAW_MONGO_URL": false,
+    "HOMECLAW_RABBITMQ_URL": false,
+    "HOMECLAW_MQTT_HOST": false,
+    "HOMECLAW_GROUNDER_URL": false,
+    "HOMECLAW_OTEL_ENDPOINT": false
+  },
+  "repository_assets": {
+    "deploy/compose.infrastructure.yaml": true,
+    "deploy/postgres/001_workflow.sql": true,
+    "deploy/postgres/002_registry.sql": true,
+    "deploy/postgres/003_registry_outbox.sql": true,
+    "deploy/mongodb/preferences-indexes.js": true,
+    "deploy/grounder/compose.yaml": true,
+    "docs/benchmark-protocol.md": true
+  }
+}

@@ -1,0 +1,26 @@
+services:
+  grounder:
+    build:
+      context: ../..
+      dockerfile: deploy/grounder/Dockerfile
+    ports:
+      - "127.0.0.1:8088:8080"
+    environment:
+      MODEL_ID: ${GROUNDING_MODEL_ID:-Qwen/Qwen3-VL-4B-Instruct}
+      MODEL_REVISION: ${GROUNDING_MODEL_REVISION:?pin an immutable model revision}
+      MAX_NEW_TOKENS: ${GROUNDING_MAX_NEW_TOKENS:-512}
+      IMAGE_ROOT: /data/images
+      ALLOWED_IMAGE_HOSTS: ${GROUNDING_ALLOWED_IMAGE_HOSTS:-}
+    volumes:
+      - grounder-model-cache:/models/cache
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  grounder-model-cache:

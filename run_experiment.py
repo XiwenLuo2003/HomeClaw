@@ -9,7 +9,7 @@ HomeBench（幻觉六型）与 SAGE（五维 + 新增维度）两套数据集上
         --dataset {both|homebench|sage} \\
         --split {test|valid|train_part1|train_part2} \\
         --limit N | --sample N [--seed S] \\
-        --provider {mock|openai|anthropic|openai_compatible|local} \\
+        --provider {mock|openai|gemini|anthropic|openai_compatible|local} \\
    --model <name> [--base-url URL] \\
         --systems {all|homeclaw,sage,...} \\
         --executor {sim|mock_cloud|smartthings|homeassistant} \\
@@ -22,7 +22,7 @@ HomeBench（幻觉六型）与 SAGE（五维 + 新增维度）两套数据集上
     --limit     HomeBench 顺序取前 N 条（默认 60）
     --sample    HomeBench 从全量随机抽 N 条（优先于 --limit，适合大数据集快速看效果）
     --seed   随机抽样种子（默认 42，保证可复现）
-    --provider  模型来源：mock=离线规则；openai/anthropic=云端 API；local=本地 transformers；
+    --provider  模型来源：mock=离线规则；openai/gemini/anthropic=云端 API；local=本地 transformers；
 openai_compatible + --base-url = 本地 vLLM/Ollama
     --model 模型名 / 本地权重 sub_dir / HF repo id
     --systems   参与对比的系统子集，逗号分隔（如 homeclaw,sage）；all=四系统全上
@@ -137,8 +137,8 @@ def main() -> None:
         help="HomeBench random N from full set (overrides --limit)")
     ap.add_argument("--seed", type=int, default=42, help="random sample seed")
     ap.add_argument("--provider", default="mock",
-        choices=["mock", "openai", "openai_compatible", "anthropic", "local"],
-        help="mock/openai/anthropic/local/openai_compatible")
+        choices=["mock", "openai", "gemini", "openai_compatible", "anthropic", "local"],
+        help="mock/openai/gemini/anthropic/local/openai_compatible")
     ap.add_argument("--model", default="mock-model", help="model name or local sub_dir/repo id")
     ap.add_argument("--base-url", default=None, help="openai_compatible service url")
     ap.add_argument("--systems", default="all",

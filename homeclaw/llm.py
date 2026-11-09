@@ -225,15 +225,21 @@ class OpenAICompatibleClient(BaseLLMClient):
     api_key 优先取 config.api_key，否则读环境变量 OPENAI_API_KEY。
     """
 
+    api_key_environment = "OPENAI_API_KEY"
+    default_base_url = "https://api.openai.com/v1"
+
     def chat(self, messages: List[Dict]) -> LLMResponse:
         import json
         import os
+        import urllib.error
         import urllib.request
 
-        api_key = self.config.api_key or os.getenv("OPENAI_API_KEY")
+        api_key = self.config.api_key or os.getenv(self.api_key_environment)
         if not api_key:
-            raise RuntimeError("缺少 API Key：请设置 config.api_key 或环境变量 OPENAI_API_KEY")
-        base_url = (self.config.base_url or "https://api.openai.com/v1").rstrip("/")
+            raise RuntimeError(
+                f"缺少 API Key：请设置 config.api_key 或环境变量 {self.api_key_environment}"
+            )
+        base_url = (self.config.base_url or self.default_base_url).rstrip("/")
 
         payload = {
             "model": self.config.model,
@@ -250,8 +256,15 @@ class OpenAICompatibleClient(BaseLLMClient):
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=self.config.timeout_seconds) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in (408, 429, 500, 502, 503, 504):
+                raise ConnectionError(f"LLM provider HTTP {exc.code}") from exc
+            raise ValueError(f"LLM provider rejected request with HTTP {exc.code}") from exc
+        except urllib.error.URLError as exc:
+            raise ConnectionError(f"LLM provider unavailable: {exc.reason}") from exc
 
         text = data["choices"][0]["message"]["content"] or ""
         usage = data.get("usage", {})
@@ -264,6 +277,13 @@ class OpenAICompatibleClient(BaseLLMClient):
         )
 
 
+class GeminiCompatibleClient(OpenAICompatibleClient):
+    """Gemini official OpenAI-compatible endpoint for the online main model."""
+
+    api_key_environment = "GEMINI_API_KEY"
+    default_base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+
 class AnthropicClient(BaseLLMClient):
     """Anthropic Messages API 客户端（urllib 实现，零第三方依赖）。
 
@@ -274,6 +294,7 @@ class AnthropicClient(BaseLLMClient):
     def chat(self, messages: List[Dict]) -> LLMResponse:
         import json
         import os
+        import urllib.error
         import urllib.request
 
         api_key = self.config.api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -304,8 +325,15 @@ class AnthropicClient(BaseLLMClient):
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=self.config.timeout_seconds) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in (408, 429, 500, 502, 503, 504):
+                raise ConnectionError(f"Anthropic HTTP {exc.code}") from exc
+            raise ValueError(f"Anthropic rejected request with HTTP {exc.code}") from exc
+        except urllib.error.URLError as exc:
+            raise ConnectionError(f"Anthropic unavailable: {exc.reason}") from exc
 
         # Anthropic 返回 content 是 block 列表
         text = ""
@@ -409,6 +437,7 @@ def create_llm_client(config: LLMConfig) -> BaseLLMClient:
     支持的 provider：
       - "mock"                : 离线规则匹配（冒烟/CI，无需 API）
       - "openai" / "openai_compatible" : OpenAI 兼容端点（含本地 vLLM/Ollama/DeepSeek 等）
+      - "gemini"              : Gemini 官方 OpenAI 兼容端点（读取 GEMINI_API_KEY）
       - "anthropic"           : Anthropic Messages API
       - "local"               : 本地 HuggingFace transformers 进程内加载权重（P4，需 torch/transformers）
 
@@ -422,6 +451,8 @@ def create_llm_client(config: LLMConfig) -> BaseLLMClient:
         return MockLLMClient(config)
     if provider in ("openai", "openai_compatible"):
         return OpenAICompatibleClient(config)
+    if provider == "gemini":
+        return GeminiCompatibleClient(config)
     if provider == "anthropic":
         return AnthropicClient(config)
     if provider == "local":

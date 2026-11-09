@@ -95,8 +95,10 @@ def test_provider_factory():
     print("\n[6] 真实 Provider 工厂")
     c1 = create_llm_client(LLMConfig(provider="openai", model="gpt-4o-mini", api_key="dummy"))
     c2 = create_llm_client(LLMConfig(provider="anthropic", model="claude-x", api_key="dummy"))
+    c3 = create_llm_client(LLMConfig(provider="gemini", model="gemini-x", api_key="dummy"))
     _assert(c1.__class__.__name__ == "OpenAICompatibleClient", "openai → OpenAICompatibleClient")
     _assert(c2.__class__.__name__ == "AnthropicClient", "anthropic → AnthropicClient")
+    _assert(c3.__class__.__name__ == "GeminiCompatibleClient", "gemini → GeminiCompatibleClient")
 
 
 def main():

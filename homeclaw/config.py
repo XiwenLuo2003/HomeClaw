@@ -14,7 +14,7 @@ from typing import Optional
 class LLMConfig:
     """Provider 无关的 LLM 配置。
 
-    provider 取值示例："openai" / "anthropic" / "mock"。
+    provider 取值示例："openai" / "gemini" / "anthropic" / "mock"。
     M1 默认使用 "mock"，无需真实 API 即可跑通内核冒烟测试。
     """
 
@@ -24,8 +24,13 @@ class LLMConfig:
     max_tokens: int = 1024
     api_key: Optional[str] = None
     base_url: Optional[str] = None
+    timeout_seconds: float = 120.0
     # 单循环最大迭代轮数（防止无限循环；也用于统计"平均调用轮数"这一新增维度）
     max_iters: int = 5
+
+    def __post_init__(self) -> None:
+        if self.max_tokens <= 0 or self.max_iters <= 0 or self.timeout_seconds <= 0:
+            raise ValueError("LLM max_tokens, max_iters, and timeout_seconds must be positive")
 
 
 @dataclass

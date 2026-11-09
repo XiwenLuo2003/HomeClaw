@@ -1,0 +1,1200 @@
+{
+  "provenance": {
+    "kind": "offline_deterministic_router_evaluation",
+    "dataset": "data\\eval\\router_gold.jsonl",
+    "registry": "homeclaw\\skills\\registry.json",
+    "python": "3.10.22 | packaged by Anaconda, Inc. | (main, Oct  1 2026, 20:15:38) [MSC v.1942 64 bit (AMD64)]",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "warning": "These metrics validate routing code only and are not online-LLM task-success results."
+  },
+  "top_k_1": {
+    "top_k": 1,
+    "sample_count": 25,
+    "recall_at_k": 0.86,
+    "mrr": 1.0,
+    "full_coverage_rate": 0.72,
+    "fallback_rate": 0.04,
+    "average_tool_contraction": 0.6836363636363636,
+    "full_schema_bytes": 2406,
+    "average_selected_schema_bytes": 727.12,
+    "schema_byte_reduction": 0.6977888611803824,
+    "latency_ms": {
+      "p50": 0.04579999949783087,
+      "p95": 0.08669996168464422,
+      "average": 0.05162399262189865
+    },
+    "decisions": [
+      {
+        "text": "turn on the bedroom light",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the living room lamp to forty percent",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "关闭厨房的灯",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把卧室亮度调低",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the air conditioner to 24 degrees",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "switch the HVAC to cooling mode",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把空调温度调到二十六度",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "房间太热了请降温",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music on the living room speaker",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn down the television volume",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "暂停电视播放",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the front door",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "unlock the entrance lock",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把门锁上",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "start the dishwasher",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the refrigerator to vacation mode",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "启动洗碗机",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn on that lamp in the image",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "which one of these devices is the television",
+        "expected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开图里那盏灯",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the lamp and set the air conditioner temperature",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the door then turn off the lights",
+        "expected": [
+          "lighting",
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music and start the dishwasher",
+        "expected": [
+          "appliance",
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开空调同时关闭客厅灯",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "do the thing over there",
+        "expected": [
+          "clarification"
+        ],
+        "selected": [
+          "clarification"
+        ],
+        "fallback": true
+      }
+    ]
+  },
+  "top_k_2": {
+    "top_k": 2,
+    "sample_count": 25,
+    "recall_at_k": 1.0,
+    "mrr": 1.0,
+    "full_coverage_rate": 1.0,
+    "fallback_rate": 0.04,
+    "average_tool_contraction": 0.6,
+    "full_schema_bytes": 2406,
+    "average_selected_schema_bytes": 928.72,
+    "schema_byte_reduction": 0.6139983374896093,
+    "latency_ms": {
+      "p50": 0.0510999234393239,
+      "p95": 0.08589995559304953,
+      "average": 0.053887986578047276
+    },
+    "decisions": [
+      {
+        "text": "turn on the bedroom light",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the living room lamp to forty percent",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "关闭厨房的灯",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把卧室亮度调低",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting",
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the air conditioner to 24 degrees",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "switch the HVAC to cooling mode",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把空调温度调到二十六度",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "房间太热了请降温",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music on the living room speaker",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn down the television volume",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "暂停电视播放",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media",
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the front door",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "unlock the entrance lock",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把门锁上",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "start the dishwasher",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the refrigerator to vacation mode",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "启动洗碗机",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn on that lamp in the image",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "which one of these devices is the television",
+        "expected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开图里那盏灯",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the lamp and set the air conditioner temperature",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the door then turn off the lights",
+        "expected": [
+          "lighting",
+          "security"
+        ],
+        "selected": [
+          "security",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music and start the dishwasher",
+        "expected": [
+          "appliance",
+          "media"
+        ],
+        "selected": [
+          "media",
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开空调同时关闭客厅灯",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "do the thing over there",
+        "expected": [
+          "clarification"
+        ],
+        "selected": [
+          "clarification"
+        ],
+        "fallback": true
+      }
+    ]
+  },
+  "baseline_tfidf_top_k_1": {
+    "top_k": 1,
+    "sample_count": 25,
+    "recall_at_k": 0.72,
+    "mrr": 0.84,
+    "full_coverage_rate": 0.6,
+    "fallback_rate": 0.0,
+    "average_tool_contraction": 0.749090909090909,
+    "full_schema_bytes": 2406,
+    "average_selected_schema_bytes": 585.56,
+    "schema_byte_reduction": 0.7566251039068994,
+    "latency_ms": {
+      "p50": 0.03559992182999849,
+      "p95": 0.04850002005696297,
+      "average": 0.03584399353712797
+    },
+    "decisions": [
+      {
+        "text": "turn on the bedroom light",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the living room lamp to forty percent",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "关闭厨房的灯",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把卧室亮度调低",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the air conditioner to 24 degrees",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "switch the HVAC to cooling mode",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把空调温度调到二十六度",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "房间太热了请降温",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music on the living room speaker",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn down the television volume",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "暂停电视播放",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the front door",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "unlock the entrance lock",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把门锁上",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "start the dishwasher",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the refrigerator to vacation mode",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "启动洗碗机",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn on that lamp in the image",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "which one of these devices is the television",
+        "expected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开图里那盏灯",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the lamp and set the air conditioner temperature",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the door then turn off the lights",
+        "expected": [
+          "lighting",
+          "security"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music and start the dishwasher",
+        "expected": [
+          "appliance",
+          "media"
+        ],
+        "selected": [
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开空调同时关闭客厅灯",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "do the thing over there",
+        "expected": [
+          "clarification"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      }
+    ]
+  },
+  "baseline_tfidf_top_k_2": {
+    "top_k": 2,
+    "sample_count": 25,
+    "recall_at_k": 0.92,
+    "mrr": 0.9,
+    "full_coverage_rate": 0.88,
+    "fallback_rate": 0.0,
+    "average_tool_contraction": 0.5963636363636363,
+    "full_schema_bytes": 2406,
+    "average_selected_schema_bytes": 958.28,
+    "schema_byte_reduction": 0.6017123857024107,
+    "latency_ms": {
+      "p50": 0.03430002834647894,
+      "p95": 0.0510999234393239,
+      "average": 0.036535984836518764
+    },
+    "decisions": [
+      {
+        "text": "turn on the bedroom light",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the living room lamp to forty percent",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "关闭厨房的灯",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把卧室亮度调低",
+        "expected": [
+          "lighting"
+        ],
+        "selected": [
+          "lighting",
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the air conditioner to 24 degrees",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "switch the HVAC to cooling mode",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把空调温度调到二十六度",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "房间太热了请降温",
+        "expected": [
+          "climate"
+        ],
+        "selected": [
+          "climate"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music on the living room speaker",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn down the television volume",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "暂停电视播放",
+        "expected": [
+          "media"
+        ],
+        "selected": [
+          "media",
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the front door",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "unlock the entrance lock",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "把门锁上",
+        "expected": [
+          "security"
+        ],
+        "selected": [
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "start the dishwasher",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "set the refrigerator to vacation mode",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "启动洗碗机",
+        "expected": [
+          "appliance"
+        ],
+        "selected": [
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "turn on that lamp in the image",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "which one of these devices is the television",
+        "expected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "media"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开图里那盏灯",
+        "expected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "dim the lamp and set the air conditioner temperature",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate",
+          "device-disambiguation"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "lock the door then turn off the lights",
+        "expected": [
+          "lighting",
+          "security"
+        ],
+        "selected": [
+          "device-disambiguation",
+          "security"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "play music and start the dishwasher",
+        "expected": [
+          "appliance",
+          "media"
+        ],
+        "selected": [
+          "media",
+          "appliance"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "打开空调同时关闭客厅灯",
+        "expected": [
+          "climate",
+          "lighting"
+        ],
+        "selected": [
+          "climate",
+          "lighting"
+        ],
+        "fallback": false
+      },
+      {
+        "text": "do the thing over there",
+        "expected": [
+          "clarification"
+        ],
+        "selected": [
+          "device-disambiguation"
+        ],
+        "fallback": false
+      }
+    ]
+  },
+  "scale": [
+    {
+      "skill_count": 100,
+      "tool_count": 111,
+      "index_build_ms": 2.133200061507523,
+      "route_p50_ms": 0.03309990279376507,
+      "route_p95_ms": 0.03720005042850971,
+      "route_throughput_qps": 29412.6293998624,
+      "index_peak_bytes": 321372
+    },
+    {
+      "skill_count": 1000,
+      "tool_count": 1011,
+      "index_build_ms": 17.311599920503795,
+      "route_p50_ms": 0.08719996549189091,
+      "route_p95_ms": 0.09309989400207996,
+      "route_throughput_qps": 11317.466403930803,
+      "index_peak_bytes": 3138764
+    },
+    {
+      "skill_count": 5000,
+      "tool_count": 5011,
+      "index_build_ms": 98.10239996295422,
+      "route_p50_ms": 0.33119996078312397,
+      "route_p95_ms": 0.37239992525428534,
+      "route_throughput_qps": 2976.199357620416,
+      "index_peak_bytes": 16317004
+    }
+  ],
+  "device_scale": [
+    {
+      "candidate_device_count": 100,
+      "resolved_device_count": 100,
+      "contracted_tool_count": 3,
+      "contraction_p50_ms": 0.02829998265951872,
+      "contraction_p95_ms": 0.0366999302059412,
+      "contraction_throughput_qps": 34135.52260134532
+    },
+    {
+      "candidate_device_count": 1000,
+      "resolved_device_count": 1000,
+      "contracted_tool_count": 3,
+      "contraction_p50_ms": 0.255499966442585,
+      "contraction_p95_ms": 0.29399991035461426,
+      "contraction_throughput_qps": 3689.6965585908088
+    },
+    {
+      "candidate_device_count": 5000,
+      "resolved_device_count": 5000,
+      "contracted_tool_count": 3,
+      "contraction_p50_ms": 1.3005000073462725,
+      "contraction_p95_ms": 1.3779000146314502,
+      "contraction_throughput_qps": 758.4261113318323
+    }
+  ]
+}

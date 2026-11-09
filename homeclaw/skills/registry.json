@@ -1,0 +1,125 @@
+{
+  "tools": [
+    {
+      "name": "request_clarification",
+      "description": "Ask the user for missing or ambiguous information.",
+      "input_schema": {"type": "object", "properties": {"question": {"type": "string"}}, "required": ["question"]}
+    },
+    {
+      "name": "get_device_state",
+      "description": "Read an aggregated current device state resource.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}}, "required": ["device_id"]}
+    },
+    {
+      "name": "turn_light_on",
+      "description": "Turn a light on to an absolute target state.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}}, "required": ["device_id"]}
+    },
+    {
+      "name": "turn_light_off",
+      "description": "Turn a light off to an absolute target state.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}}, "required": ["device_id"]}
+    },
+    {
+      "name": "set_light_brightness",
+      "description": "Set an absolute light brightness between 0 and 100.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "brightness": {"type": "integer", "minimum": 0, "maximum": 100}}, "required": ["device_id", "brightness"]}
+    },
+    {
+      "name": "set_temperature",
+      "description": "Set an HVAC target temperature.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "temperature": {"type": "number"}}, "required": ["device_id", "temperature"]}
+    },
+    {
+      "name": "set_hvac_mode",
+      "description": "Set HVAC operating mode.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "mode": {"type": "string"}}, "required": ["device_id", "mode"]}
+    },
+    {
+      "name": "control_media",
+      "description": "Control playback or absolute media volume.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "operation": {"type": "string"}}, "required": ["device_id", "operation"]}
+    },
+    {
+      "name": "set_lock_state",
+      "description": "Set a door lock to locked or unlocked.",
+      "risk": "high",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "locked": {"type": "boolean"}}, "required": ["device_id", "locked"]}
+    },
+    {
+      "name": "control_appliance",
+      "description": "Set an appliance to an explicit operating state.",
+      "input_schema": {"type": "object", "properties": {"device_id": {"type": "string"}, "state": {"type": "string"}}, "required": ["device_id", "state"]}
+    },
+    {
+      "name": "ground_visual_device",
+      "description": "Resolve an ambiguous visual reference to a registered device.",
+      "input_schema": {"type": "object", "properties": {"image_uri": {"type": "string"}, "query": {"type": "string"}}, "required": ["image_uri", "query"]}
+    }
+  ],
+  "skills": [
+    {
+      "skill_id": "clarification",
+      "domain": "safety",
+      "description": "Clarify ambiguous, incomplete, or unsupported requests.",
+      "keywords": ["clarify", "ambiguous", "which device", "不清楚", "哪个"],
+      "tool_names": ["request_clarification"],
+      "competence": 1.0
+    },
+    {
+      "skill_id": "lighting",
+      "domain": "lighting",
+      "description": "Control lights, lamps, brightness and illumination scenes.",
+      "keywords": ["light", "lamp", "brightness", "illumination", "灯", "亮度"],
+      "tool_names": ["get_device_state", "turn_light_on", "turn_light_off", "set_light_brightness"],
+      "knowledge_resource_uris": ["home://topology/lighting", "home://capabilities/lighting"],
+      "competence": 0.9
+    },
+    {
+      "skill_id": "climate",
+      "domain": "climate",
+      "description": "Control HVAC, air conditioners, temperature and climate modes.",
+      "keywords": ["temperature", "air conditioner", "hvac", "heat", "cool", "温度", "空调"],
+      "tool_names": ["get_device_state", "set_temperature", "set_hvac_mode"],
+      "knowledge_resource_uris": ["home://topology/climate", "home://capabilities/climate"],
+      "competence": 0.88
+    },
+    {
+      "skill_id": "media",
+      "domain": "media",
+      "description": "Control televisions, speakers, playback and media volume.",
+      "keywords": ["television", "tv", "speaker", "music", "play", "volume", "电视", "音乐"],
+      "tool_names": ["get_device_state", "control_media"],
+      "knowledge_resource_uris": ["home://topology/media"],
+      "competence": 0.82
+    },
+    {
+      "skill_id": "security",
+      "domain": "security",
+      "description": "Control locks and security-sensitive home devices.",
+      "keywords": ["lock", "unlock", "door", "security", "门锁", "上锁"],
+      "tool_names": ["get_device_state", "set_lock_state"],
+      "knowledge_resource_uris": ["home://topology/security", "home://capabilities/security"],
+      "competence": 0.86
+    },
+    {
+      "skill_id": "appliance",
+      "domain": "appliance",
+      "description": "Control household appliances such as dishwasher and refrigerator modes.",
+      "keywords": ["dishwasher", "fridge", "appliance", "洗碗机", "冰箱", "家电"],
+      "tool_names": ["get_device_state", "control_appliance"],
+      "knowledge_resource_uris": ["home://topology/appliances"],
+      "competence": 0.8
+    },
+    {
+      "skill_id": "device-disambiguation",
+      "domain": "grounding",
+      "description": "Resolve visual references among similar or occluded physical devices.",
+      "keywords": ["this device", "that lamp", "in the image", "which one", "这个设备", "图里", "那盏灯"],
+      "tool_names": ["get_device_state", "ground_visual_device", "request_clarification"],
+      "knowledge_resource_uris": ["home://topology/visual-candidates"],
+      "activation_phrases": ["this device", "that lamp", "in the image", "which one", "这个设备", "图里", "那盏灯"],
+      "competence": 0.9
+    }
+  ]
+}
