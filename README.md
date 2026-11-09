@@ -1,259 +1,337 @@
 # HomeClaw
 
-> 把 **SAGE** 的学术资产（五维评测基准 + 智能家居领域知识）搬进 **OpenClaw** 的现代 Skill 范式，
-> 融合 **HomeBench** 的大规模幻觉评测数据集，构建一个**能多维度衡量、能测幻觉、能仿真动作输出、
-> 并预留真机接口**的下一代智能家居 Agent 与 Benchmark。
+面向真实智能家居执行闭环的可恢复 Agent Runtime：在线大模型负责语义规划，Skill-MoE 负责稀疏能力编排，Qwen3-VL-4B Grounder 只负责视觉设备消歧，Host 通过 MCP–MQTT Bridge 执行领域动作，并以设备状态证据而不是“发布成功”判定任务完成。
 
-- 详细设计见 [`00-设计草案.md`](./00-设计草案.md) 及 `01~06` 系列设计文档。
-- 本文只讲三件事：**整体代码架构 · 一图速览 · 一键实验步骤**。
+当前开发分支：`production-ready`
 
-> `production-ready` 分支已增加可恢复 Workflow、Skill Top-K/Tool 二次收缩、确定性 Verifier、MCP–MQTT 状态证据闭环、时间化用户偏好、PostgreSQL/Redis/MongoDB/RabbitMQ Adapter、Qwen3-VL Grounder 推理服务、OpenTelemetry 与受控自进化门禁。实施状态见 [`production-ready-plan.md`](./production-ready-plan.md)，架构见 [`docs/production-ready-architecture.md`](./docs/production-ready-architecture.md)。
+> 本仓库同时保留早期 SAGE/HomeBench 学术评测与仿真入口。`homeclaw/agent`、`workflow`、`routing`、`verification`、`mcp_runtime`、`mqtt` 等目录构成 production-ready 工程主线；旧版 Coordinator、场景仿真和四系统对比作为兼容评测层继续保留。
 
-无需安装额外依赖的本地验收：
+## 核心原则
+
+- Agent 主模型是 GPT、Gemini 等在线 LLM；Qwen3-VL-4B 只是 `device-disambiguation` Skill 内部的 Grounder。
+- MCP 只暴露 `set_temperature`、`set_light_brightness` 等领域 Tool，不向 LLM 暴露原始 MQTT Topic。
+- MQTT PUBACK、MCP 成功响应和消息队列 Publisher Confirm 都不等于设备执行成功；最终成功必须绑定业务 ACK 或匹配的 State Evidence。
+- PostgreSQL 是 Workflow、Checkpoint、Registry、动作尝试和 Outbox 的真相源；Redis 是可重建缓存，RabbitMQ 是异步事件通道，MongoDB 保存时间化用户记忆。
+- Skill-MoE 是工程上的 Top-K 稀疏门控与 Tool 子空间收缩，不是参数级神经网络 MoE。
+- 生产 Agent 无权在线修改 Skill；演进只能经过离线回放、安全门禁、Evidence Pack、人工审批和 Canary。
+
+## 一图速览
+
+```mermaid
+flowchart LR
+    U["User or API"] --> H["Workflow Host"]
+    H --> R["Skill Router"]
+    R -->|"visual ambiguity"| G["Device-disambiguation Skill"]
+    G --> Q["Qwen3-VL-4B Grounder"]
+    Q --> P["Online LLM Proposer"]
+    R -->|"normal request"| P
+    P --> B["Instance Binder"]
+    B --> V["Deterministic Verifier"]
+    V -->|"accepted"| C["MCP Client"]
+    V -->|"structured issue"| RP["Bounded Re-Plan"]
+    RP --> P
+    C --> S["Domain MCP Server"]
+    S --> M["MCP-MQTT Bridge"]
+    M --> K["MQTT Broker"]
+    K --> D["Device or Gateway"]
+    D --> K
+    K --> E["ACK and State Evidence"]
+    E --> H
+```
+
+### Workflow 状态机
+
+```text
+Receive -> Route -> [Ground] -> Plan -> Verify -> Execute -> Confirm -> Complete
+                         |          |          |          |
+                         +-> Reject +-> RePlan +-> RePlan +-> Fail
+```
+
+`Ground` 仅在 Router 选中设备消歧 Skill 时进入。每个节点结束后保存 Checkpoint；Checkpoint 与 Outbox 在同一事务提交。默认执行预算为 24 Step、2 次 Re-Plan、16K Token 和 120 秒全局 Deadline。
+
+## 系统组成
+
+| 组件 | 部署位置与职责 | 关键边界 |
+|---|---|---|
+| Workflow Host | CPU 服务；维护状态机、DAG、预算、Checkpoint 和恢复 | 不让 LLM 直接决定执行成功 |
+| Online Planner/Proposer | GPT、Gemini、Anthropic 或兼容端点 | 只生成结构化语义提议 |
+| Skill Router | CPU 服务；倒排召回、动态 Top-K、低置信度回退 | 简单请求 Top-1，多意图/视觉请求 Top-2 |
+| Qwen3-VL-4B Grounder | 独立 Docker GPU 服务 | 只处理视觉设备指代；不负责全局规划或 Verifier |
+| Binder/Verifier | CPU 确定性模块 | 校验实例、Capability、参数、状态、风险、幂等和动作冲突 |
+| MCP Server | 领域 Tool、Resource、Prompt 接口 | Tool 白名单、版本、RBAC、家庭租户隔离和高风险确认 |
+| MCP–MQTT Bridge | MCP 服务或边缘网关侧 | 内部维护 Tool 到 Topic/Payload 映射，Topic 不进入模型上下文 |
+| State Layer | Redis Cache + 设备/网关权威状态 | sequence CAS、TTL、GAP、Read-through 和周期对账 |
+| Event Layer | RabbitMQ | Quorum Queue、Manual ACK、DLX/DLQ；不作为任务真相源 |
+| Memory Layer | MongoDB | 时间化偏好、撤销历史、日/月摘要和用户隔离 |
+| Observability | OpenTelemetry | 统一 Trace/Metric，敏感属性脱敏 |
+
+### 关联标识
+
+| 标识 | 生命周期 |
+|---|---|
+| `trace_id` | 一条端到端调用链 |
+| `request_id` | 一次入口请求 |
+| `task_id` | 一个可恢复 Workflow |
+| `action_id` | 一条语义动作提议 |
+| `command_id` | 一次可去重的设备命令；安全重试时保持不变 |
+| `message_id` | 一条可由消费者去重的异步消息 |
+
+## 关键能力
+
+### 1. Skill-MoE 双层稀疏编排
+
+1. Skill Registry 保存能力域、关键词、激活短语、Tool 引用和知识资源。
+2. Router 使用倒排索引、关键词覆盖和能力分选择 Top-K Skill。
+3. Host 只加载命中 Skill 的知识和 Tool Schema。
+4. 家居拓扑先收缩候选设备。
+5. Capability Registry 再删除候选设备不支持的 Tool。
+6. 低置信度请求进入 clarification，而不是猜测动作。
+
+共享 Tool 在 Registry 中只定义一次，多个 Skill 通过引用复用，避免重复 Schema 和权限漂移。
+
+### 2. Grounder 知识锚定
+
+- 使用 `home_id/room_id/capability` 先过滤视觉候选。
+- 候选只有一台时跳过模型；仍有多台候选时才调用 Grounder。
+- Grounder 返回候选集外设备、超时或低置信度时保持 ambiguous 并拒绝执行。
+- Docker 服务提供 readiness、单请求和最多 16 条的批处理入口；模型 revision 必须固定。
+- 本分支只实现推理部署与 Agent 接入，不包含 Qwen3-VL、LoRA 或 GRPO 训练代码。
+
+部署说明见 [`deploy/grounder/README.md`](./deploy/grounder/README.md)。
+
+### 3. Proposer–Binder–Verifier
+
+Proposer 只能看到 Router 选中的 Tool；Binder 将语义别名绑定到注册设备；Verifier 不接受 Proposer 的自然语言自证，只校验结构化 `ActionProposal`：
+
+- 设备是否存在、在线且属于当前家庭；
+- Tool 是否由设备 Capability 支持；
+- 参数类型、范围、未知字段和 Expected State；
+- 状态是否新鲜；
+- 风险、授权和幂等等级；
+- 批动作中的冗余、设备冲突、环境冲突、资源竞争、阻塞和依赖环。
+
+失败结果以结构化 issue 返回，并受最大 Re-Plan 次数限制。工程实现默认不需要把 Proposer 和 Verifier 包装成两个通过 A2A 通信的独立 Agent。
+
+### 4. MCP Tools、Resources 与 Prompts
+
+- **Tools**：版本化领域动作及输入 Schema，Host 只暴露被选中 Skill 的白名单。
+- **Resources**：按需读取聚合设备状态与能力快照；高频原始传感器流不进入 LLM。
+- **Prompts**：版本化规划、验证和异常解释模板；实时状态不固化在 Prompt 中。
+- **Authorization**：校验 Principal、角色、家庭范围、策略版本和高风险确认，生产配置默认 fail-closed。
+
+### 5. MQTT 执行与状态一致性
+
+- 发布前先订阅 State/ACK，避免错过快速响应。
+- Payload 携带稳定 `command_id`；QoS 1 重复投递由去重记录吸收。
+- `set_temperature(26)` 等绝对目标可安全幂等；无法转换的 `toggle` 动作禁止自动重试。
+- Diff 使用单调 sequence；重复、乱序和序号跳跃分别返回 `DUPLICATE`、`OUT_OF_ORDER` 和 `GAP`。
+- GAP、缓存缺失或 TTL 过期时读取权威完整快照；`StateReconciler` 周期修复漏失事件。
+- retained message 必须额外检查时间、设备在线状态、版本和命令关联。
+
+### 6. 崩溃恢复与可靠性
+
+- `WorkflowHost.resume(task_id)` 从最后一个已提交节点恢复。
+- PostgreSQL Action Attempt 以 `task_id:action_id` 作为幂等键并保存原 `command_id`。
+- 崩溃后已有终态证据直接复用；未完成动作继续等待原命令，不盲目补发新命令。
+- 通用 Retry 默认最多 3 次，指数退避 0.1 秒起、2 秒封顶、10% 抖动。
+- 连续 5 次失败打开熔断，30 秒后半开探测；非幂等操作始终只尝试 1 次。
+
+### 7. 时间化记忆
+
+偏好事实使用 append-only 模型，包含来源、置信度、作用域、`valid_at/invalid_at/expires_at` 和 supersedes 关系。冲突规则为：
+
+1. 显式声明高于系统规则，高于行为推断；
+2. 设备级高于房间级，高于情境级，高于全局；
+3. 同优先级使用更新且仍有效的事实；
+4. 撤销和替代只标记失效，不删除审计历史。
+
+## 代码结构
+
+### 亮点到代码的直接映射
+
+| 工程亮点 | 核心实现 | 关键测试/评测 |
+|---|---|---|
+| **Skill-MoE 双层稀疏编排** | `routing/registry.py`、`router.py`、`contraction.py`；`skills/registry.json`；`resilience/controls.py` 中的动态 Top-K | `test_skill_router.py`、`test_tool_contraction.py`、`test_baseline_router.py`、`evaluate_router.py` |
+| **Proposer–Binder–Verifier 有界博弈** | `agent/proposer.py`、`binder.py`、`runtime.py`；`verification/verifier.py`、`conflicts.py` | `test_production_runtime.py`、`test_instance_binder.py`、`test_verifier.py`、`test_conflicts.py` |
+| **MCP–MQTT Bridge 与 False Done 防护** | `mcp_runtime/server.py`、`host.py`、`home_server.py`、`resources.py`；`mqtt/bridge.py`、`paho_adapter.py` | `test_mcp_runtime.py`、`test_mqtt_bridge.py`、`test_state_resources.py` |
+| **受控 Skill 自进化** | `evolution/pipeline.py`、`gates.py`、`models.py`、`store.py`、`canary.py` | `test_evolution.py`；Evidence Pack、stale base 拒绝和 Canary 自动暂停 |
+| **Checkpoint 与幂等恢复** | `workflow/engine.py`、`postgres_store.py`、`action_attempts.py`；`agent/runtime.py` 中的 `DurableActionDispatcher` | `test_workflow.py`、`test_postgres_checkpoint.py`、`test_durable_dispatcher.py` |
+| **Qwen3-VL 设备消歧 Skill** | `grounding/service.py`、`client.py`、`capacity.py`；`topology/grounding.py`；`deploy/grounder/` | `test_grounding_service.py`、`test_capacity_wrappers.py` |
+
+### 关键文件级目录树
+
+```text
+HomeClaw/
+├── homeclaw/
+│   ├── agent/
+│   │   ├── runtime.py         # 生产组合根：Workflow→Router→Ground→Propose→Bind→Verify→MCP
+│   │   │                      # MCPActionDispatcher / DurableActionDispatcher / ProductionRuntime
+│   │   ├── proposer.py        # 在线 LLM 语义提议；只接收路由后的 Tool 子集
+│   │   ├── binder.py          # 语义设备别名绑定到唯一 Registry 实例
+│   │   └── capacity.py        # Planner 并发、QPS、在途 Token 和瞬态错误重试
+│   │
+│   ├── routing/               # Skill-MoE 第一层：能力级 Top-K 门控
+│   │   ├── models.py          # ToolDefinition / SkillDefinition / RouteDecision
+│   │   ├── registry.py        # Skill/Tool 唯一注册、引用和 Schema 校验
+│   │   ├── router.py          # 倒排召回、混合打分、Top-K 与 clarification 回退
+│   │   └── contraction.py     # Skill-MoE 第二层：按候选设备 Capability 收缩 Tool
+│   ├── skills/
+│   │   ├── registry.json      # lighting/climate/media/security/appliance/消歧 Skill 画像
+│   │   └── smart-home/        # 早期 Skill 懒加载兼容实现
+│   │
+│   ├── verification/          # Proposer–Verifier 中的隔离验证侧
+│   │   ├── registry.py        # ToolSpec、ParameterSpec、DeviceRecord、能力真相接口
+│   │   ├── postgres_registry.py # Registry 乐观锁、同事务 Outbox、拓扑/能力版本
+│   │   ├── verifier.py        # 实例、参数、状态新鲜度、风险与幂等校验
+│   │   └── conflicts.py       # 冗余/设备/环境/资源/阻塞/依赖环冲突检测
+│   │
+│   ├── mcp_runtime/           # Function Calling 进入 MCP 的 Host/Server 边界
+│   │   ├── server.py          # 版本化 MCP Tools、Resources、Prompts 与订阅语义
+│   │   ├── host.py            # Tool 白名单 + RBAC + 家庭租户 + 高风险确认
+│   │   ├── home_server.py     # 领域 Tool 注册及 Tool→Bridge Binding
+│   │   ├── resources.py       # 聚合状态 Resource 与选择性更新通知
+│   │   └── sdk_adapter.py     # 官方异步 MCP Session Adapter 与独立超时
+│   ├── mqtt/                  # MCP–MQTT Bridge：不向模型暴露 Topic
+│   │   ├── bridge.py          # command_id、订阅先于发布、业务 ACK/State Evidence
+│   │   ├── paho_adapter.py    # 真实 Paho MQTT 连接、SUBACK、发布与等待
+│   │   └── transport.py       # 可测试的 Transport 契约与内存实现
+│   │
+│   ├── workflow/
+│   │   ├── state.py           # 显式节点、WorkflowState 与 Step/Re-Plan/Token/Deadline
+│   │   ├── engine.py          # 节点执行、逐节点 Checkpoint、等待/恢复/明确终态
+│   │   ├── store.py           # In-memory/SQLite Store 与 Outbox 契约
+│   │   ├── postgres_store.py  # PostgreSQL Checkpoint + Outbox 原子事务
+│   │   └── action_attempts.py # command_id、幂等键、执行证据与崩溃后恢复
+│   │
+│   ├── evolution/             # 受控 Skill-MoE 自进化，不允许在线自改生产
+│   │   ├── pipeline.py        # FailureTrace→Candidate→Replay/Ablation→Gate→Canary
+│   │   ├── models.py          # CandidateChange、EvaluationSnapshot、EvidencePack 哈希
+│   │   ├── gates.py           # 可比性、收益和安全门禁；失败默认拒绝
+│   │   ├── store.py           # Evidence Pack 原子持久化
+│   │   └── canary.py          # 人工批准、小流量状态机、安全违规自动暂停
+│   │
+│   ├── grounding/
+│   │   ├── service.py         # 拓扑候选锚定；单候选跳过模型，多候选调用 Grounder
+│   │   ├── client.py          # HTTP 单条/批量推理、候选集外结果拒绝、readiness
+│   │   └── capacity.py        # Grounder QPS、并发、队列时间和批处理保护
+│   ├── topology/
+│   │   ├── graph.py           # 家庭、房间、设备与关系图
+│   │   └── grounding.py       # 基于房间/能力/邻接关系的知识锚定
+│   │
+│   ├── state/
+│   │   ├── cache.py           # sequence、TTL、DUPLICATE/OUT_OF_ORDER/GAP
+│   │   ├── redis_adapter.py   # Redis Lua CAS、幂等证据和租约
+│   │   └── reconcile.py       # Read-through 权威回源与周期全量对账
+│   ├── memory/
+│   │   ├── preferences.py     # append-only 时间偏好与确定性冲突解决
+│   │   ├── summaries.py       # 日/月摘要的源事件锚定与版本化
+│   │   └── mongo_adapter.py   # Mongo 事务、唯一活跃事实及有限并发重试
+│   ├── events/
+│   │   ├── bus.py             # 版本化 Envelope 与消费者去重
+│   │   └── rabbitmq_adapter.py # Quorum Queue、Manual ACK、DLX/DLQ
+│   ├── security/authorization.py # Principal、RBAC、home scope、policy version
+│   ├── resilience/controls.py # Retry、熔断、Semaphore、Token Bucket、动态 Top-K
+│   ├── observability/         # 关联 ID Span、P50/P95、OTel Adapter 与脱敏
+│   ├── domain/                # ActionProposal、ExecutionEvidence、错误与关联 ID
+│   ├── eval/                  # 四策略、Router、冲突、状态一致性与性能评测
+│   └── coordinators/          # 早期 SAGE/HomeBench 学术评测兼容层
+├── data/
+│   ├── eval/                  # Router Gold 与冲突规则自有数据
+│   ├── homebench/             # HomeBench 自包含数据
+│   └── sage/                  # SAGE 用户、记忆和图像资产
+├── deploy/
+│   ├── postgres/              # Workflow、Registry、Registry Outbox Migration
+│   ├── mongodb/               # 偏好唯一索引
+│   ├── grounder/              # Qwen3-VL-4B Docker GPU 推理服务
+│   └── compose.infrastructure.yaml # PostgreSQL/Redis/Mongo/RabbitMQ/MQTT 验收拓扑
+├── tests/
+│   ├── test_skill_router.py / test_tool_contraction.py
+│   ├── test_production_runtime.py / test_verifier.py / test_conflicts.py
+│   ├── test_mcp_runtime.py / test_mqtt_bridge.py / test_state_resources.py
+│   ├── test_evolution.py / test_workflow.py / test_durable_dispatcher.py
+│   └── smoke_m1.py ... smoke_p7.py
+├── scripts/                    # verify、Router/冲突评测、外部预检、HTTP 压测
+├── reports/                    # 仓库自有离线原始报告
+└── docs/                       # 架构、ADR、Benchmark、外部验收和运行手册
+```
+
+## 快速验收
+
+要求 Python 3.10 及以上。以下命令不需要额外安装 production 依赖，也不会连接数据库、Broker、在线模型或 GPU：
 
 ```powershell
 python scripts/verify.py --suite all
 python scripts/evaluate_router.py --output reports/router-eval.json
+python scripts/evaluate_conflicts.py --output reports/conflict-eval.json
 python scripts/external_preflight.py --output reports/external-preflight.json
 ```
 
-最后一条只做只读预检，不连接或启动任何外部服务。真实环境验收清单见 [`docs/external-acceptance.md`](./docs/external-acceptance.md)。
+其中 `external_preflight.py` 只检查可选模块、配置名和部署资产是否存在，不读取密钥值，也不启动服务。
 
----
+### 早期学术评测兼容入口
 
-## 一、一图速览
-
-```mermaid
-flowchart TB
-    subgraph SRC["三大源项目（资产来源）"]
-        SAGE["SAGE<br/>五维评测基准与领域知识<br/>LangChain 旧范式"]
-        HB["HomeBench<br/>大规模数据集与幻觉六型<br/>可执行设备仿真"]
-        OC["OpenClaw<br/>单主循环与 Skill 懒加载<br/>现代 Agent 范式"]
-    end
-
-    subgraph HC["HomeClaw（本项目）"]
-        SK["smart-home Skill<br/>SAGE 提示词与 HomeBench 格式约定<br/>两级懒加载"]
-        RT["HomeClawCoordinator<br/>单主循环与 Function Calling<br/>SAGE 兼容执行接口"]
-        EV["双评测适配器<br/>SAGE 五维评测与 HomeBench 幻觉六型"]
-        EX["ActionExecutor<br/>默认仿真与真机接口预留"]
-        SC["Scene 场景层<br/>HomeBench 12 房间与 SAGE 全量设备<br/>3D JSON 导出"]
-        TL["SAGE 工具<br/>MemoryBank、UserProfile、Weather"]
-    end
-
-    SAGE -->|"领域知识与五维标签"| SK
-    SAGE -->|"执行接口与对照组"| RT
-    SAGE -->|"记忆与用户画像"| TL
-    HB -->|"系统提示与动作格式"| SK
-    HB -->|"幻觉数据与设备模型"| EX
-    OC -->|"运行时范式"| RT
-
-    SK --> RT
-    RT --> EX
-    EX --> SC
-    TL --> RT
-    EV --> RT
+```powershell
+python run_experiment.py --provider mock --limit 60
 ```
 
-**数据流（一条指令的生命周期）**：
+该入口保留 HomeClaw、SAGE、Sasha、OnePrompt 四系统对比以及 HomeBench/SAGE 评测。`mock` 数字只用于链路验证，不能作为模型效果结论。真实在线模型示例：
 
-```
-用户指令 → HomeClawCoordinator.execute()
-   → loop.py 单主循环：注入 Skill 规则速览 → LLM
-   → （复杂指令）READ_SKILL 拉全文 → LLM 再生成
-   → 产出动作文本 room.device.operation(param)
-   → parser 解析 → Executor 落地（仿真改内存 / 真机调云 API）
-   → snapshot 快照 → 评测适配器断言 / 3D 场景实时渲染
+```powershell
+$env:OPENAI_API_KEY = "YOUR_API_KEY"
+python run_experiment.py --provider openai --model MODEL_VERSION --limit 200
 ```
 
----
+## 可复现的当前证据
 
-## 二、整体代码架构
+以下结果来自当前仓库的离线报告和本机回归，不代表在线生产环境：
 
-```
-HomeClaw/
-├── homeclaw/              # 核心包
-│   ├── loop.py      # OpenClaw 式单主循环内核（LLM→工具→回灌→再循环）
-│   ├── prompt.py        # 两级懒加载 system prompt 构建（规则速览 + 按需全文）
-│   ├── llm.py # Provider 无关 LLM 层：mock/openai/anthropic/local(HF)
-│   ├── config.py        # LLMConfig / SkillConfig / CoordinatorType / build_coordinator
-│   ├── data_paths.py            # 数据/模型路径统一配置（数据自包含，零跨项目引用）
-│   │
-│   ├── coordinators/     # 四系统编排器
-│   │   ├── homeclaw_coordinator.py  # HomeClaw 主编排（懒加载 + Function-Calling）
-│   │   ├── baselines.py   # OnePrompt / Sasha / SageBridge 三对照组
-│   │   └── base.py           # Coordinator 抽象 + ExecuteResult
-│   │
-│   ├── skills/smart-home/       # smart-home Skill（SKILL.md，含规则速览段）
-│   │
-│   ├── executor/              # 执行层（动作文本 → 状态变更 / 真机调用）
-│   │   ├── parser.py    # 解析 room.device.operation(param) / error_input
-│   │   ├── simulate_executor.py     # 内存仿真执行器（默认）
-│   │   ├── condition_monitor.py     # 持久化条件监控（Persistence 维度）
-│   │   ├── real_executor.py         # 真机执行器（预留）
-│   │   ├── cloud_adapter.py# SmartThings / HomeAssistant / Mock 云适配器
-│   │   └── factory.py               # make_executor：sim/mock_cloud/smartthings/homeassistant
-│   │
-│   ├── devices/device.py        # HomeBench 16 类 + SAGE 特有设备类（TV/冰箱/洗碗机…）
-│   │
-│   ├── scene/       # 场景层（P2/P6）
-│   │   ├── schema.py     # Scene/Room/DeviceSlot（含 3D 坐标 + anchors）
-│   │   ├── homebench_scene.py       # HomeBench 12 房间拓扑
-│   │   ├── sage_scene.py            # SAGE 全量设备场景 + 覆盖度自检
-│   │   └── export.py      # 导出 3D 可视化 JSON（供前端 / P7）
-│   │
-│   ├── tools/  # SAGE 原子智能体在 HomeClaw 的落地（P3）
-│   │   ├── memory_bank.py           # 记忆库：auto 检索器（有 sentence-transformers 走真实向量，否则关键词降级）
-│   │   ├── user_profile.py          # 用户画像 + 记忆检索（个性化核心）
-│   │   ├── device_disambiguation.py # 设备消歧：默认真实 CLIP 图文相似度（缺依赖时文本兜底）
-│   │   └── weather / human_interaction / api_planner
-│   │
-│   ├── eval/      # 双评测体系
-│   │   ├── sage_adapter.py          # SAGE 五维评测（动态执行断言）
-│   │   ├── sage_cases.py      # 从 SAGE 官方迁移的五维用例集
-│   │   ├── sage_dataset.py          # SAGE 数据加载（画像/记忆）
-│   │   ├── homebench_adapter.py     # HomeBench 幻觉六型评测（EM/P/R/F1）
-│   │   └── metrics.py               # 指标计算
-│   │
-│   └── runners/__init__.py      # SageRunner / HomeBenchRunner + 数据来源标注
-│
-├── data/ # 数据自包含（无跨项目引用）
-│   ├── homebench/            # HomeBench 数据集 *.jsonl
-│   └── sage/       # SAGE user_info / memory
-│
-├── models/# 本地开源模型权重（download_models.py 下载到此）
-├── tests/  # smoke_m1~m6 + smoke_p1_p6 冒烟测试
-│
-├── run_experiment.py      # 一键四系统对比实验入口
-├── download_models.py         # 本地开源模型下载脚本（hf-mirror 镜像）
-├── export_scenes.py          # 场景 3D JSON 导出 CLI
-└── 00-设计草案.md ~ 06-3D场景可视化实施方案.md   # 设计与实施文档
-```
+| 项目 | 当前结果 | 适用范围 |
+|---|---:|---|
+| Production 单元/进程内集成测试 | 123/123 通过 | 代码与故障语义回归 |
+| 原项目 Smoke | M1–M6、P1–P7 共 8 组通过 | 学术原型兼容性 |
+| Router Top-2 Recall@2 | 100% | 25 条仓库自有 Gold 集 |
+| Router Top-2 多标签完整覆盖率 | 100% | TF-IDF 基线为 88% |
+| Top-2 Schema 收缩 | 2406 → 928.72 Bytes，减少 61.4% | 序列化 Tool Schema 体积 |
+| 5000 Skill 路由 | P95 约 0.372 ms，约 2976 QPS | 当前本机离线 CPU 进程 |
+| 5000 Skill 索引峰值 | 约 16.3 MB | 合成扩展 Registry |
+| 5000 候选设备 Tool 收缩 | P95 约 1.378 ms | 内存 Capability 收缩 |
+| 冲突规则回归 | 8 条合成用例，Precision/Recall/F1/Exact Match 均为 1.00 | 规则覆盖，不是真实家庭分布 |
 
-### 关键设计
-- **编排内核**：OpenClaw 式单主循环 + 原生 Function-Calling，摆脱 LangChain ReAct 文本解析。
-- **能力组织**：扁平 Skill 两级懒加载（规则速览始终注入 + 完整策略按需 `READ_SKILL`），简单指令省 token。
-- **动作格式**：统一 `room.device.operation(param)` / `error_input`，仿真与真机零改格式。
-- **多模态设备消歧**：`DeviceDisambiguationTool` 默认走**真实 CLIP 图文相似度**，结合 `data/sage/images/` 的实景照片 + 空间锚点（by the credenza / plant …）在同类多设备间消歧；缺 `open_clip`/`torch` 时回退文本兜底并如实标注后端（`backend=="text"`）。
-- **向量记忆检索**：`MemoryBank` 默认 auto 策略，装了 `sentence-transformers` 即自动启用**真实向量语义检索**（与 SAGE 原始向量库对齐），否则回退关键词并标注（`retriever_kind=="keyword"`）。
-- **四系统对比**：HomeClaw vs SAGE / Sasha / OnePrompt，同一数据、同一指标。
-- **数据自包含**：SAGE + HomeBench 数据集全部拷入 `data/`，可独立复现。
+原始证据：
 
-### SAGE 原子智能体在 HomeClaw 的落地对照
+- [`reports/router-eval-2026-11-09.json`](./reports/router-eval-2026-11-09.json)
+- [`reports/conflict-eval-2026-11-09.json`](./reports/conflict-eval-2026-11-09.json)
+- [`reports/external-preflight.json`](./reports/external-preflight.json)
 
-| SAGE 原子智能体 | HomeClaw 实现 | 真实能力 | 降级回退（缺依赖时） |
-|---|---|---|---|
-| MemoryBank（向量库检索） | `memory_bank.py` | sentence-transformers 向量语义检索 | 关键词重叠（标注 `keyword`） |
-| UserProfile（个性化） | `user_profile.py` | 结构化偏好 + 记忆召回注入 prompt | —（真实） |
-| DeviceDisambiguation（VLM 视觉消歧） | `device_disambiguation.py` | **open_clip CLIP 图文相似度 + 实景图** | 锚点/名称文本兜底（标注 `text`） |
-| WeatherTool | `weather.py` | 可接 OpenWeatherMap（设 `OPENWEATHER_API_KEY`） | 确定性 mock（可复现） |
-| HumanInteraction（追问澄清） | `human_interaction.py` | 回调应答 + 提问记录 | 预设默认答复 |
-| ApiUsagePlanner | `api_planner.py` | 意图→受支持操作的规划 | —（规则版） |
+项目材料中还保留“长程复杂指令成功率相对基线提升 25%”和“细粒度设备实体识别准确率 84%”两个已有研究/简历口径；它们不是上述离线路由或单测报告产生的数字，正式引用时必须同时提供原实验数据、模型版本、测试集和统计口径。
 
-> 所有工具的实际后端都可在运行时如实报告（`backend` / `retriever_kind` / `is_semantic`），
-> 便于论文方法学标注结果是否为多模态/向量真实实现，杜绝"声称多模态却无实现"的隐患。
+## 真实环境部署与验收
 
----
+生产 Adapter 的可选依赖定义在 `pyproject.toml` 的 `production` extra 中。仓库提供部署资产，但不会自动安装依赖、拉取镜像或启动服务：
 
-## 三、一键实验步骤
+- [`deploy/compose.infrastructure.yaml`](./deploy/compose.infrastructure.yaml)：PostgreSQL、Redis、MongoDB、RabbitMQ、MQTT 验收拓扑；
+- [`deploy/postgres/`](./deploy/postgres/)：Workflow、Registry 和 Outbox Migration；
+- [`deploy/grounder/`](./deploy/grounder/)：Qwen3-VL-4B 推理服务；
+- [`docs/external-acceptance.md`](./docs/external-acceptance.md)：真实基础设施验收矩阵；
+- [`docs/benchmark-protocol.md`](./docs/benchmark-protocol.md)：四策略对比、容量和指标协议；
+- [`docs/operations-runbook.md`](./docs/operations-runbook.md)：发布、恢复、Outbox、MQTT 和回滚手册。
 
-HomeClaw 学术实验**以云端完整大模型 API 为主**（对齐 SAGE 在线 API 方式），
-同时提供"本地部署开源模型"路径（复现 HomeBench）。
+隔离验收环境中的 Mosquitto 示例允许匿名访问，仅用于本地测试，禁止直接作为生产 Broker 配置。Grounder 镜像必须固定不可变模型 revision，在线 LLM 实验必须固定模型版本、Prompt、数据哈希、预算和随机种子。
 
-### 0. 离线冒烟（无需 API，验证链路）
+## 文档导航
 
-```bash
-cd HomeClaw
-python3 run_experiment.py --provider mock --limit 60
+- [Production-Ready 实施计划](./production-ready-plan.md)
+- [Production-Ready 架构](./docs/production-ready-architecture.md)
+- [外部环境验收清单](./docs/external-acceptance.md)
+- [实验与容量验收协议](./docs/benchmark-protocol.md)
+- [运行与恢复手册](./docs/operations-runbook.md)
+- [架构决策记录](./docs/adr/)
+- [深度面试 Q&A](./Q&A.md)
+- [早期设计草案](./00-设计草案.md)
 
-# 回归测试
-python3 tests/smoke_m6.py       # 关键局限修复验证
-python3 tests/smoke_p1_p6.py    # 六阶段回归（数据/场景/工具/本地模型/真机/3D）
-```
+## 当前边界
 
-### 1. 云端 API（主路径）
-
-```bash
-export OPENAI_API_KEY=sk-...
-python3 run_experiment.py --provider openai --model gpt-4o-mini --limit 200
-
-# 或 Gemini（在线 Agent 主模型；与 Qwen3-VL Grounder 相互独立）
-export GEMINI_API_KEY=...
-python3 run_experiment.py --provider gemini --model <gemini-model> --limit 200
-
-# 或 Anthropic
-export ANTHROPIC_API_KEY=...
-python3 run_experiment.py --provider anthropic --model <model> --limit 200
-```
-
-### 2. 本地开源模型（复现 HomeBench 本地部署）
-
-先下载权重到 `HomeClaw/models/`：
-
-```bash
-hf auth login
-export HF_ENDPOINT=https://hf-mirror.com
-export HF_TOKEN=YOUR_HF_TOKEN
-python download_models.py
-```
-
-生成 `models/{llama3-8b-Instruct, Qwen2.5-7B-Instruct, Mistral-7B-Instruct-v0.3, Gemma-7B-Instruct-v0.3}/`，
-再用本地权重跑（`--model` 传 **sub_dir 名**，自动解析到 `models/<sub_dir>`）：
-
-```bash
-# 2a) 进程内 transformers 加载（需 pip install torch transformers accelerate）
-python3 run_experiment.py --provider local --model Qwen2.5-7B-Instruct --limit 200
-
-# 2b) 或 vLLM/Ollama 起 OpenAI 兼容服务后指向它
-python3 run_experiment.py --provider openai_compatible \
-    --base-url http://localhost:8000/v1 --model qwen2.5-7b --limit 200
-```
-
-### 3. SAGE 多模态 / 向量模型（device_resolution + personalization 的真实对比前提）
-
-要与 SAGE 在**设备消歧（视觉）**与**个性化（记忆向量检索）**两维做**公平对比**，
-必须下载并启用真实的 CLIP 与句向量模型，否则这两维跑的是文本/关键词降级版，
-其数字**不可**与 SAGE 官方结果直接比较：
-
-```bash
-pip install -r requirements.txt           # 含 open_clip_torch / sentence-transformers / pillow
-python download_models.py --clip --embed  # 下载 CLIP(ViT-B-32) + all-MiniLM-L6-v2
-```
-
-生成 `models/clip/ViT-B-32.pt` 与 `models/sentence-transformers/all-MiniLM-L6-v2/`。
-装好后：`DeviceDisambiguationTool` 自动走真实 CLIP（`backend=="clip"`），`MemoryBank`
-自动走真实向量检索（`retriever_kind=="embedding"`），实验报告会如实反映后端。
-
-> 若未安装：`device_resolution` 的视觉用例回退锚点文本兜底、`personalization` 回退关键词检索，
-> 程序仍可跑通，但须在论文方法学中标注为降级实现（运行时后端字段会显示 `text` / `keyword`）。
-
-### 4. 可选开关
-
-```bash
-# 让 SAGE 位走官方 LangChain 实现（需本机 SAGE 环境）
-SAGE_ENABLE_OFFICIAL=1 python3 run_experiment.py --provider openai --model gpt-4o-mini
-
-# SAGE 五维切真机执行后端
-python3 run_experiment.py --provider openai --model gpt-4o-mini \
-    --executor smartthings# sim(默认)/mock_cloud/smartthings/homeassistant
-```
-
-### 输出内容
-
-一次实验产出三段对比：
-1. **HomeBench 幻觉六型** · 四系统 OVERALL + 分型 EM/P/R/F1；
-2. **SAGE 五维 + 新增维度**（过度执行率 / 拒答率 / 平均轮数 / token / 延迟）· 四系统对比；
-3. **懒加载省 token 量化**（同内核 lazy on/off 对比）。
-
-> ⚠️ `--provider mock` 的所有数字仅为链路验证值，**不能作为论文结论**；报告顶部会标注数据来源。
-> 真实系统间差异需接入真实 LLM 后才会显现。
-
----
-
-## 四、参与评测的四个系统
-
-| 系统 | 说明 |
-|---|---|
-| **HomeClaw** | 本项目：单主循环 + Skill 两级懒加载 + Function-Calling |
-| **SAGE** | 完整 ReAct 领域推理；`SAGE_ENABLE_OFFICIAL=1` 可桥接官方 LangChain 实现 |
-| **Sasha** | 真两阶段管线（规划 → 动作，`iters=2`） |
-| **OnePrompt** | 单轮裸提示基线（最短 prompt） |
+- 本仓库没有实现 Qwen3-VL、LoRA 或 GRPO 训练，只实现 Grounder 推理部署和 Agent 接入。
+- 当前 Router、冲突、状态与恢复数字来自离线/进程内验收，不能冒充在线 LLM、真实家庭或 GPU 生产指标。
+- PostgreSQL、Redis、MongoDB、RabbitMQ、MQTT、MCP SDK、OpenTelemetry、在线模型和 GPU 的真实验收需要在准备好的外部环境中单独执行。
+- 任何参考仓库或论文指标都不能直接写成 HomeClaw 自有结果。
